@@ -5,7 +5,7 @@ from peft import LoraConfig
 from trl import SFTTrainer, SFTConfig
 
 # Config
-model_id = "Qwen/Qwen2.5-7B-Instruct"
+model_id = "Qwen/Qwen2.5-7B"
 output_dir = "./qwen-hermes-lora"
 dataset_size = 10000  # start small, can increase later
 
@@ -28,19 +28,17 @@ model = AutoModelForCausalLM.from_pretrained(
 dataset = load_dataset("teknium/OpenHermes-2.5", split="train")
 dataset = dataset.shuffle(seed=42).select(range(dataset_size))
 
-# Format conversations into chat template
+
 def format_sample(sample):
     messages = []
+    # include system prompt if present
+    if sample.get("system_prompt"):
+        messages.append({"role": "system", "content": sample["system_prompt"]})
     for turn in sample["conversations"]:
         role = "user" if turn["from"] == "human" else "assistant"
         messages.append({"role": role, "content": turn["value"]})
-    return {
-        "text": tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=False
-        )
-    }
+    return {"messages": messages}
+
 
 dataset = dataset.map(format_sample)
 
