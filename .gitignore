@@ -1,0 +1,25 @@
+# Model weights and adapters
+qwen-hermes-lora/
+qwen-hermes-lora-v2/
+qwen-hermes-lora-v3/
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Unsloth cache
+unsloth_compiled_cache/
+
+# HuggingFace cache
+.cache/
+
+# Training artifacts
+runs/
+wandb/
+baseline_results/
+finetuned_results/
+
+# Python
+__pycache__/
+*.pyc
+.env
