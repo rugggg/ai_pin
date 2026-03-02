@@ -3,11 +3,12 @@ from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig
 from trl import SFTTrainer, SFTConfig
+from unsloth import FastLanguageModel
 
 # Config
 model_id = "Qwen/Qwen2.5-7B"
 output_dir = "./qwen-hermes-lora"
-dataset_size = 10000  # start small, can increase later
+dataset_size = 50000
 
 # Load model in 4bit to save VRAM during training
 bnb_config = BitsAndBytesConfig(
@@ -16,13 +17,27 @@ bnb_config = BitsAndBytesConfig(
     bnb_4bit_compute_dtype=torch.bfloat16,
     bnb_4bit_use_double_quant=True,
 )
-
-tokenizer = AutoTokenizer.from_pretrained(model_id)
-model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    quantization_config=bnb_config,
-    device_map="auto",
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name=model_id,
+    max_seq_length=1024,
+    load_in_4bit=True,
 )
+tokenizer.eos_token = "<|endoftext|>"
+tokenizer.pad_token = "<|endoftext|>"
+model = FastLanguageModel.get_peft_model(
+    model,
+    r=16,
+    lora_alpha=32,
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+    lora_dropout=0.05,
+    bias="none",
+)
+#tokenizer = AutoTokenizer.from_pretrained(model_id)
+#model = AutoModelForCausalLM.from_pretrained(
+#    model_id,
+#    quantization_config=bnb_config,
+#    device_map="auto",
+#)
 
 # Load and slice dataset
 dataset = load_dataset("teknium/OpenHermes-2.5", split="train")
@@ -53,17 +68,18 @@ lora_config = LoraConfig(
 # Training config
 sft_config = SFTConfig(
     output_dir=output_dir,
-    num_train_epochs=1,
-    per_device_train_batch_size=2,
-    gradient_accumulation_steps=8,  # effective batch size = 16
+    num_train_epochs=3,
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=4,  # effective batch size = 16
     warmup_steps=50,
     learning_rate=2e-4,
     bf16=True,
     logging_steps=10,
     save_strategy="epoch",
     # dataset_text_field="text",
-    max_seq_length=1024,
+    packing=True,
 )
+model = torch.compile(model)
 
 trainer = SFTTrainer(
     model=model,
