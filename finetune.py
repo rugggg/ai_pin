@@ -58,15 +58,15 @@ lora_config = LoraConfig(
 sft_config = SFTConfig(
     output_dir=output_dir,
     num_train_epochs=1,
-    per_device_train_batch_size=4,
-    gradient_accumulation_steps=4,  # effective batch size = 16
+    per_device_train_batch_size=2,
+    gradient_accumulation_steps=8,  # effective batch size = 16
     warmup_steps=50,
     learning_rate=2e-4,
     bf16=True,
     logging_steps=10,
     save_strategy="epoch",
     dataset_text_field="text",
-    max_seq_length=2048,
+    max_seq_length=1024,
 )
 
 trainer = SFTTrainer(
