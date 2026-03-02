@@ -26,8 +26,7 @@ model = AutoModelForCausalLM.from_pretrained(
 
 # Load and slice dataset
 dataset = load_dataset("teknium/OpenHermes-2.5", split="train")
-dataset = dataset.shuffle(seed=42).select(range(dataset_size))
-
+dataset = dataset.shuffle(seed=10065).select(range(dataset_size))
 
 def format_sample(sample):
     messages = []
@@ -38,7 +37,6 @@ def format_sample(sample):
         role = "user" if turn["from"] == "human" else "assistant"
         messages.append({"role": role, "content": turn["value"]})
     return {"messages": messages}
-
 
 dataset = dataset.map(format_sample)
 
@@ -63,7 +61,7 @@ sft_config = SFTConfig(
     bf16=True,
     logging_steps=10,
     save_strategy="epoch",
-    dataset_text_field="text",
+    # dataset_text_field="text",
     max_seq_length=1024,
 )
 
