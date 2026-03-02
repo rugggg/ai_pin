@@ -1,9 +1,10 @@
+
+from unsloth import FastLanguageModel
 import torch
 from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import LoraConfig
 from trl import SFTTrainer, SFTConfig
-from unsloth import FastLanguageModel
 
 # Config
 model_id = "Qwen/Qwen2.5-7B"
@@ -17,13 +18,19 @@ bnb_config = BitsAndBytesConfig(
     bnb_4bit_compute_dtype=torch.bfloat16,
     bnb_4bit_use_double_quant=True,
 )
+
+
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name=model_id,
     max_seq_length=1024,
     load_in_4bit=True,
 )
-tokenizer.eos_token = "<|endoftext|>"
-tokenizer.pad_token = "<|endoftext|>"
+
+# Manually set Qwen chat template
+tokenizer.chat_template = "{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
+tokenizer.eos_token = "<|im_end|>"
+tokenizer.pad_token = "<|im_end|>"
+
 model = FastLanguageModel.get_peft_model(
     model,
     r=16,
@@ -31,13 +38,8 @@ model = FastLanguageModel.get_peft_model(
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
     lora_dropout=0.05,
     bias="none",
+    use_gradient_checkpointing="unsloth",
 )
-#tokenizer = AutoTokenizer.from_pretrained(model_id)
-#model = AutoModelForCausalLM.from_pretrained(
-#    model_id,
-#    quantization_config=bnb_config,
-#    device_map="auto",
-#)
 
 # Load and slice dataset
 dataset = load_dataset("teknium/OpenHermes-2.5", split="train")
