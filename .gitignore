@@ -1,7 +1,4 @@
 # Model weights and adapters
-qwen-hermes-lora/
-qwen-hermes-lora-v2/
-qwen-hermes-lora-v3/
 *.bin
 *.safetensors
 *.pt
